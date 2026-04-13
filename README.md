@@ -2,27 +2,96 @@
 
 A simple, clean web application for tracking English Premier League statistics, standings, and player information.
 
-## Reliability Checklist
+## How to Use
 
-Before demo day, the following checks will be run to ensure application reliability:
+1. In the terminal, enter "python3 -m http.server 4040"
+2. In a web browser, enter "http://localhost:4040/index.html"
 
-### Core Functionality
-1. **Works on a clean browser profile** - Application loads and functions correctly with no cached data or cookies
-2. **Works after refresh** - All data displays correctly and state is maintained after page refresh
-3. **Search functionality returns correct results** - Searching for players by name returns all matching results with no errors
+    From there the user can: 
+    1. Browse Premier League standings
+    2. View top statistics on the right (toggle between goals and assists)
+    3. Search for players using the search bar
+    4. Click on teams or players to see detailed information in modals
+    5. Use keyboard navigation (Tab) and Escape key to navigate modals
 
-### User Interactions
-4. **Toggle between goals/assists works correctly** - Button changes stat type, updates table title, and displays correct data for both views
-5. **Modal open and close works** - Clicking on teams/players opens modals correctly, close button works, and Escape key closes modals
-6. **Player card navigation works** - Clicking players in team modal opens player detail modal with correct information including team name
+## Modular Map
 
-### Visual & Accessibility
-7. **Keyboard focus is visible** - Tab navigation shows clear focus indicators on all interactive elements (buttons, table rows, search input)
-8. **Responsive design works on mobile** - Layout reflows correctly on screens ≤768px (single column instead of two columns)
+Refactored Structure: 
 
-### Edge Cases & Error Handling
-9. **Search with no results displays gracefully** - Searching for non-existent player shows "No players found" message without errors
-10. **Works with empty search field** - Clearing search input hides results dropdown and doesn't cause errors
+    /src
+     ├── main.js
+     ├── api.js
+     ├── state.js
+     ├── render.js
+     ├── dom.js
+     └── events.js
+
+    main.js: application bootstrap and orchestration
+    Responsible for starting the application and coordinating high-level flow.
+        - initializes the application on DOMContentLoaded
+        - calls API funcstions to load data
+        - updates state with fetched data
+        - triggers render functions
+        - wires together API, state, and UI
+    
+    api.js: data fetching and API layer
+    Handles all communication with external football API
+        - performs fetch requests
+        - manages request configuation
+        - implements caching to reduce duplicate API calls
+        - normalizes and returns raw API data
+        - throws errors for the calling layer to handle
+    
+    state.js: centralized state management
+    Maintains the application's single source of truth
+        - stores all shared application data (standings, players, stats,UI state)
+        - provides setter functions to update state
+        - provides getter access to state
+        - builds derived data 
+    
+    render.js: UI rendering layer
+    Controls all DOM updates and rendering
+        - renders standing tables
+        - renders player stat tables
+        - updates UI based on application's current state
+        - does not directly fetch data or manage changes in state
+    
+    dom.js: DOM element references
+    Centralizes access to DOM elements
+        - stores references to frequently used elements
+        - reduces repeated document.getElementById calls
+        - improves maintainability and readability
+        - acts as a signle source for DOM selectors
+    
+    events.js: event handling and user interaction
+    Manages all user-driven interactions
+        - attaches event listeners (clicks, keyboard events, .etc)
+        - handles UI events (toggle states, search, .etc)
+        - updates state in response to user actions
+        - triggers re-rendering when needed
+
+
+## Component Contracts
+
+    components/SearchResults.js
+
+    // Component: SearchResults
+    // Input: { container, results, query, onSelect }
+    // Output: DOM nodes mounted inside `container`
+    // Events: onSelect(playerId) — called when user clicks a result
+    // Dependencies: none
+
+    We decided to extract the feature above it was the perfect candidate for component extraction due to:
+            a) it being self-contained UI logic
+            b) it entails DOM rendering, event binding, and state-derived data usage
+            c) before extraction, did not have separation of concerns, as render & interaction were coupled
+
+## Resilence Patterns
+
+    Timeout — AbortController with a reasonable timeout. Lives in api.js
+
+    Structured error messages — different messages for network, timeout, HTTP, and parse errors. Lives in api.js
+
 
 ## Features
 
@@ -32,11 +101,3 @@ Before demo day, the following checks will be run to ensure application reliabil
 - **Team Details**: Click any team to see team information and scrollable player roster
 - **Player Profiles**: Click any player to view detailed statistics including total contributions
 
-## How to Use
-
-1. Open `index.html` in a web browser
-2. Browse the league standings on the left
-3. View top statistics on the right (toggle between goals and assists)
-4. Search for players using the search bar
-5. Click on teams or players to see detailed information in modals
-6. Use keyboard navigation (Tab) and Escape key to navigate modals
