@@ -12,6 +12,7 @@ import {
   renderStats,
 } from "./render.js";
 import { attachEventListeners } from "./events.js";
+import { dom } from "./dom.js";
 
 async function loadAllData() {
   showLoading("standings-body");
@@ -40,9 +41,11 @@ async function loadAllData() {
     setTopData(scorers, assists);
     buildAllPlayers();
     renderStats();
+    dom.toggleBtn.disabled = false;
   } catch (err) {
     console.error("Failed to load player stats:", err);
     const classified = classifyError(err);
+    dom.toggleBtn.disabled = true;
     showError(
       "stats-body",
       classified,

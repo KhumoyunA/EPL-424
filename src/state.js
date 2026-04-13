@@ -145,6 +145,11 @@ export function getTopStatPlayers() {
   return source.slice(0, 15);
 }
 
+// returns true if stats data has been loaded
+export function hasStatsData() {
+  return state.topScorers.length > 0 || state.topAssists.length > 0;
+}
+
 // returns allPlayers filtered by the current search query
 export function getFilteredPlayers() {
   const query = state.searchQuery.toLowerCase().trim();

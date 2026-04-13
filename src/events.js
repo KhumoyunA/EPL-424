@@ -6,6 +6,7 @@ import {
   clearSearchResults,
   closeModal,
   handleOutsideClick,
+  handleFocusTrap,
 } from "./render.js";
 
 export function attachEventListeners() {
@@ -35,10 +36,11 @@ export function attachEventListeners() {
     }
   });
 
-  // modal close
+  // modal close + focus trap
   dom.closeModalBtn.addEventListener("click", closeModal);
   dom.modal.addEventListener("click", handleOutsideClick);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeModal();
+    handleFocusTrap(e);
   });
 }

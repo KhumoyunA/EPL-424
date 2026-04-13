@@ -14,6 +14,9 @@ import {
 } from "./state.js";
 import { SearchResults } from "./components/SearchResults.js";
 
+// tracks which element opened the modal so focus can return on close
+let _triggerElement = null;
+
 // four UI states: loading, error, empty, success
 
 export function showLoading(elementId) {
@@ -93,9 +96,17 @@ export function renderStandings() {
       <td>${stats.lose}</td>
       <td><strong>${entry.points}</strong></td>`;
     row.style.cursor = "pointer";
-    row.addEventListener("click", () => openTeamModal(entry));
+    row.setAttribute("aria-label", `View ${team.name} details`);
+    row.setAttribute("role", "button");
+    row.addEventListener("click", () => {
+      _triggerElement = row;
+      openTeamModal(entry);
+    });
     row.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") openTeamModal(entry);
+      if (e.key === "Enter") {
+        _triggerElement = row;
+        openTeamModal(entry);
+      }
     });
     row.tabIndex = 0;
     dom.standingsBody.appendChild(row);
@@ -145,7 +156,10 @@ export function renderStats() {
       </td>
       <td><strong>${value}</strong></td>`;
     row.style.cursor = "pointer";
-    row.addEventListener("click", () => {
+    row.setAttribute("aria-label", `View ${fullName} stats`);
+    row.setAttribute("role", "button");
+    const openPlayer = () => {
+      _triggerElement = row;
       const allPlayers = getAllPlayers();
       const playerObj = allPlayers.find((pl) => pl.id === p.id) || {
         id: p.id,
@@ -163,9 +177,10 @@ export function renderStats() {
         rating: s.games.rating ? parseFloat(s.games.rating).toFixed(2) : null,
       };
       openPlayerView(playerObj, null);
-    });
+    };
+    row.addEventListener("click", openPlayer);
     row.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") row.click();
+      if (e.key === "Enter") openPlayer();
     });
     row.tabIndex = 0;
     dom.statsBody.appendChild(row);
@@ -500,10 +515,38 @@ function renderForm(form) {
 export function closeModal() {
   dom.modal.setAttribute("hidden", "");
   setCurrentTeamEntry(null);
+
+  // return focus to the element that opened the modal
+  if (_triggerElement) {
+    _triggerElement.focus();
+    _triggerElement = null;
+  }
 }
 
 export function handleOutsideClick(event) {
   if (event.target === dom.modal) {
     closeModal();
+  }
+}
+
+// focus trap: keep Tab cycling within the open modal
+export function handleFocusTrap(event) {
+  if (event.key !== "Tab") return;
+  if (dom.modal.hasAttribute("hidden")) return;
+
+  const focusable = dom.modal.querySelectorAll(
+    'button:not([hidden]), [href], input, [tabindex]:not([tabindex="-1"])',
+  );
+  if (focusable.length === 0) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
   }
 }
