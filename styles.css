@@ -256,12 +256,17 @@ tbody tr:hover {
   flex-shrink: 0;
 }
 
-/* loading and error states */
+/* loading, error, and empty states */
 .loading-cell,
-.error-cell {
+.error-cell,
+.empty-cell {
   text-align: center;
   padding: 2rem 1rem;
   color: var(--text);
+}
+
+.empty-cell {
+  font-style: italic;
 }
 
 .loading-spinner {
