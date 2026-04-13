@@ -243,14 +243,56 @@ function buildAllPlayers() {
       photo: p.photo,
       age: p.age,
       nationality: p.nationality,
+      height: p.height,
+      weight: p.weight,
       position: s.games.position,
+      number: s.games.number,
       teamId: s.team.id,
       teamName: s.team.name,
       teamLogo: s.team.logo,
+      captain: s.games.captain,
+      // games
+      appearances: s.games.appearences || 0,
+      lineups: s.games.lineups || 0,
+      minutes: s.games.minutes || 0,
+      rating: s.games.rating ? parseFloat(s.games.rating).toFixed(2) : null,
+      // goals
       goals: s.goals.total || 0,
       assists: s.goals.assists || 0,
-      appearances: s.games.appearences || 0,
-      rating: s.games.rating ? parseFloat(s.games.rating).toFixed(2) : null,
+      conceded: s.goals.conceded || 0,
+      saves: s.goals.saves || 0,
+      // shots
+      shotsTotal: s.shots.total || 0,
+      shotsOn: s.shots.on || 0,
+      // passes
+      passesTotal: s.passes.total || 0,
+      keyPasses: s.passes.key || 0,
+      passAccuracy: s.passes.accuracy || null,
+      // tackles
+      tackles: s.tackles.total || 0,
+      blocks: s.tackles.blocks || 0,
+      interceptions: s.tackles.interceptions || 0,
+      // duels
+      duelsTotal: s.duels.total || 0,
+      duelsWon: s.duels.won || 0,
+      // dribbles
+      dribblesAttempted: s.dribbles.attempts || 0,
+      dribblesSuccess: s.dribbles.success || 0,
+      // fouls
+      foulsDrawn: s.fouls.drawn || 0,
+      foulsCommitted: s.fouls.committed || 0,
+      // cards
+      yellowCards: s.cards.yellow || 0,
+      yellowRed: s.cards.yellowred || 0,
+      redCards: s.cards.red || 0,
+      // penalties
+      penScored: s.penalty.scored || 0,
+      penMissed: s.penalty.missed || 0,
+      penSaved: s.penalty.saved || 0,
+      // substitutes
+      subIn: s.substitutes.in || 0,
+      subOut: s.substitutes.out || 0,
+      bench: s.substitutes.bench || 0,
     };
   };
 
@@ -409,7 +451,7 @@ async function openTeamModal(entry) {
     renderSquad(players, entry);
   } catch (err) {
     document.getElementById("squad-container").innerHTML =
-      `<p class="error-message">⚠ Could not load squad. ${err.message}</p>`;
+      `<p class="error-message"> Error: Could not load squad. ${err.message}</p>`;
   }
 }
 
