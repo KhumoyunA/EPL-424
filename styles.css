@@ -605,20 +605,209 @@ footer {
 
 /* responsive */
 @media (max-width: 768px) {
+  /* header stacks vertically and fills full width */
   .header-content {
     flex-direction: column;
+    gap: 0.75rem;
+    padding: 0;
   }
 
   .site-nav {
-    justify-content: center;
-    flex-wrap: wrap;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-left: 0;
   }
 
+  .search-wrapper {
+    width: 100%;
+  }
+
+  .search-form {
+    width: 100%;
+  }
+
+  #site-search {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .search-results {
+    left: 0;
+    right: 0;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .toggle-button {
+    width: 100%;
+  }
+
+  /* main layout single column */
   main {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 0 0.5rem;
+    margin: 1rem auto;
+  }
+
+  /* tables scroll horizontally if needed */
+  .standings-section,
+  .stats-section {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  th,
+  td {
+    padding: 0.5rem 0.4rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  /* hide rank badge on mobile to save space */
+  .rank-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6rem;
+  }
+
+  .team-logo {
+    width: 20px;
+    height: 20px;
+  }
+
+  .player-photo {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* modal goes nearly full-screen on mobile */
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100%;
+    border-radius: 0;
+    padding: 1rem;
+    border: none;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .modal-team-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* stat grids use 2 columns on mobile */
+  .team-stats-grid,
+  .player-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .stat-box {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .stat-desc {
+    font-size: 0.65rem;
+  }
+
+  /* squad grid smaller cards */
+  .players-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.4rem;
+  }
+
+  .player-card {
+    padding: 0.5rem;
+  }
+
+  .card-player-photo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .card-name {
+    font-size: 0.75rem;
+  }
+
+  .app-badge {
+    font-size: 0.65rem;
+  }
+
+  /* player detail header */
+  .player-detail-header {
+    gap: 0.75rem;
+  }
+
+  .detail-player-photo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .player-detail-header h3 {
+    font-size: 1.1rem;
+  }
+
+  /* form badges smaller */
+  .form-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6rem;
+  }
+
+  /* footer */
+  footer {
+    margin-top: 1.5rem;
+    padding: 1rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+}
+
+/* extra small screens */
+@media (max-width: 400px) {
+  header {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .brand {
+    font-size: 1.1rem;
+  }
+
+  th,
+  td {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.78rem;
+  }
+
+  .team-cell {
+    gap: 0.3rem;
+  }
+
+  /* 3-column stats on very small screens */
+  .team-stats-grid,
+  .player-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat-number {
+    font-size: 1rem;
   }
 
   .players-grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
   }
 }
