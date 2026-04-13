@@ -176,53 +176,38 @@ export function renderStats() {
 
 export function handleSearch(event) {
   event.preventDefault();
+
   const query = dom.siteSearch.value;
   setSearchQuery(query);
 
-  const matched = getFilteredPlayers(); // selector — derived data
+  const matched = getFilteredPlayers();
 
-  if (!query.trim()) {
-    dom.searchResults.classList.remove("active");
-    return;
-  }
-
-  // empty state for search
-  if (matched.length === 0) {
-    dom.searchResults.className = "search-results active not-found";
-    dom.searchResults.innerHTML = `<div class="no-results">No players found for "<strong>${query}</strong>"</div>`;
-    return;
-  }
-
-  // success state for search
-  dom.searchResults.className = "search-results active found";
-  let html = '<div class="results-list">';
-  matched.forEach((player) => {
-    html += `
-      <div class="result-item" data-player-id="${player.id}">
-        <div class="result-name">${player.name}</div>
-        <div class="result-team">${player.teamName}</div>
-      </div>`;
-  });
-  html += "</div>";
-  dom.searchResults.innerHTML = html;
-
-  document.querySelectorAll(".result-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      const pid = parseInt(item.dataset.playerId);
+  SearchResults({
+    container: dom.searchResults,
+    results: matched,
+    query,
+    onSelect: (playerId) => {
       const allPlayers = getAllPlayers();
-      const player = allPlayers.find((p) => p.id === pid);
+      const player = allPlayers.find((p) => p.id === playerId);
+
       openPlayerView(player, null);
+
       dom.siteSearch.value = "";
       setSearchQuery("");
       dom.searchResults.classList.remove("active");
-    });
+    },
   });
 }
 
 export function clearSearchResults() {
   setSearchQuery("");
-  dom.searchResults.classList.remove("active");
-  dom.searchResults.innerHTML = "";
+
+  SearchResults({
+    container: dom.searchResults,
+    results: [],
+    query: "",
+    onSelect: () => {},
+  });
 }
 
 // team modal
