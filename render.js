@@ -12,6 +12,7 @@ import {
   getCachedTeamPlayers,
   normalizeAndCacheTeamPlayers,
 } from "./state.js";
+import { SearchResults } from "./components/SearchResults.js";
 
 // four UI states: loading, error, empty, success
 
