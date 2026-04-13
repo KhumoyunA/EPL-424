@@ -4,13 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>EPL Stat Tracker</title>
-    <link rel="stylesheet" href="styles.css"/>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="site-header">
       <div class="header-content">
         <div class="brand">
-          <!-- <div class="logo" aria-hidden="true"></div> -->
           <div class="title">EPL Stat Tracker</div>
         </div>
 
@@ -20,10 +19,21 @@
           </button>
           <div class="search-wrapper">
             <form class="search-form" id="search-form">
-              <input id="site-search" name="search" type="search" placeholder="Search player..." aria-label="Search for player" />
+              <input
+                id="site-search"
+                name="search"
+                type="search"
+                placeholder="Search player..."
+                aria-label="Search for player"
+              />
               <button type="submit" aria-label="Search">Search</button>
             </form>
-            <div id="search-results" class="search-results" role="status" aria-live="polite"></div>
+            <div
+              id="search-results"
+              class="search-results"
+              role="status"
+              aria-live="polite"
+            ></div>
           </div>
         </nav>
       </div>
@@ -43,9 +53,7 @@
               <th>Points</th>
             </tr>
           </thead>
-          <tbody id="standings-body">
-            
-          </tbody>
+          <tbody id="standings-body"></tbody>
         </table>
       </section>
 
@@ -59,44 +67,33 @@
               <th id="stat-column">Goals</th>
             </tr>
           </thead>
-          <tbody id="stats-body">
-          </tbody>
+          <tbody id="stats-body"></tbody>
         </table>
       </section>
     </main>
 
     <footer>
-      <small>EPL Stat Tracker: Track your favorite teams, players, & stats all in one place.</small>
+      <small>EPL Stat Tracker &mdash; Data via API-Football</small>
     </footer>
 
-    <div id="team-modal" class="modal" hidden>
+    <div id="detail-modal" class="modal" hidden>
       <div class="modal-content">
         <header class="modal-header">
-          <h2 id="modal-team-name"></h2>
-          <button class="close-button" id="close-team-modal" aria-label="Close modal">&times;</button>
+          <h2 id="modal-title"></h2>
+          <button
+            class="close-button"
+            id="close-modal"
+            aria-label="Close modal"
+          >
+            &times;
+          </button>
         </header>
-        <div id="modal-team-info" class="modal-body">
-
-        </div>
-        <div id="modal-players" class="players-scroll">
-   
-        </div>
+        <button id="modal-back-btn" class="back-button" hidden>← Back</button>
+        <div id="modal-dynamic-content" class="modal-body"></div>
       </div>
     </div>
 
-
-    <div id="player-modal" class="modal" hidden>
-      <div class="modal-content modal-player">
-        <header class="modal-header">
-          <h2>Player Details</h2>
-          <button class="close-button" id="close-player-modal" aria-label="Close modal">&times;</button>
-        </header>
-        <div id="modal-player-info" class="modal-body">
-
-        </div>
-      </div>
-    </div>
-
+    <script src="config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
