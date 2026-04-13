@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EPL Stat Tracker</title>
+    <link rel="stylesheet" href="styles.css"/>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-content">
+        <div class="brand">
+          <!-- <div class="logo" aria-hidden="true"></div> -->
+          <div class="title">EPL Stat Tracker</div>
+        </div>
+
+        <nav class="site-nav" aria-label="Primary">
+          <button id="toggle-stat" class="toggle-button" aria-pressed="false">
+            <span class="stat-label">Top Scorers</span>
+          </button>
+          <div class="search-wrapper">
+            <form class="search-form" id="search-form">
+              <input id="site-search" name="search" type="search" placeholder="Search player..." aria-label="Search for player" />
+              <button type="submit" aria-label="Search">Search</button>
+            </form>
+            <div id="search-results" class="search-results" role="status" aria-live="polite"></div>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="standings-section">
+        <h2>League Standings</h2>
+        <table id="standings-table" class="standings-table">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Played</th>
+              <th>Win</th>
+              <th>Draw</th>
+              <th>Loss</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody id="standings-body">
+            
+          </tbody>
+        </table>
+      </section>
+
+      <section class="stats-section">
+        <h2 id="stats-title">Top Scorers</h2>
+        <table id="stats-table" class="stats-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Team</th>
+              <th id="stat-column">Goals</th>
+            </tr>
+          </thead>
+          <tbody id="stats-body">
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer>
+      <small>EPL Stat Tracker: Track your favorite teams, players, & stats all in one place.</small>
+    </footer>
+
+    <div id="team-modal" class="modal" hidden>
+      <div class="modal-content">
+        <header class="modal-header">
+          <h2 id="modal-team-name"></h2>
+          <button class="close-button" id="close-team-modal" aria-label="Close modal">&times;</button>
+        </header>
+        <div id="modal-team-info" class="modal-body">
+
+        </div>
+        <div id="modal-players" class="players-scroll">
+   
+        </div>
+      </div>
+    </div>
+
+
+    <div id="player-modal" class="modal" hidden>
+      <div class="modal-content modal-player">
+        <header class="modal-header">
+          <h2>Player Details</h2>
+          <button class="close-button" id="close-player-modal" aria-label="Close modal">&times;</button>
+        </header>
+        <div id="modal-player-info" class="modal-body">
+
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
