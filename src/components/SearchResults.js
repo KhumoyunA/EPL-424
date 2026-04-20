@@ -16,13 +16,17 @@ export function SearchResults({ container, results, query, onSelect }) {
     return;
   }
 
-  // no results → empty state
   if (results.length === 0) {
     container.className = "search-results active not-found";
 
     const div = document.createElement("div");
     div.className = "no-results";
-    div.innerHTML = `No players found for "<strong>${query}</strong>"`;
+    
+    div.appendChild(document.createTextNode('No players found for "'));
+    const strong = document.createElement("strong");
+    strong.textContent = query;
+    div.appendChild(strong);
+    div.appendChild(document.createTextNode('"'));
 
     container.appendChild(div);
     return;
@@ -38,14 +42,27 @@ export function SearchResults({ container, results, query, onSelect }) {
     const item = document.createElement("div");
     item.className = "result-item";
     item.dataset.playerId = player.id;
+    item.tabIndex = 0;
 
-    item.innerHTML = `
-      <div class="result-name">${player.name}</div>
-      <div class="result-team">${player.teamName}</div>
-    `;
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "result-name";
+    nameDiv.textContent = player.name;
 
-    item.addEventListener("click", () => {
-      onSelect(player.id);
+    const teamDiv = document.createElement("div");
+    teamDiv.className = "result-team";
+    teamDiv.textContent = player.teamName;
+
+    item.appendChild(nameDiv);
+    item.appendChild(teamDiv);
+
+    const handleSelect = () => onSelect(player.id);
+
+    item.addEventListener("click", handleSelect);
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleSelect();
+      }
     });
 
     list.appendChild(item);

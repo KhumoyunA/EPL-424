@@ -14,150 +14,199 @@ import {
 } from "./state.js";
 import { SearchResults } from "./components/SearchResults.js";
 
-// tracks which element opened the modal so focus can return on close
-let _triggerElement = null;
+// helper to safely create DOM elements and mitigate XSS
+function createElement(tag, props = {}, children = []) {
+  const el = document.createElement(tag);
+  Object.keys(props).forEach((key) => {
+    if (key === "className") {
+      el.className = props[key];
+    } else if (key === "dataset") {
+      Object.assign(el.dataset, props[key]);
+    } else if (key === "style") {
+      Object.assign(el.style, props[key]);
+    } else {
+      el[key] = props[key];
+    }
+  });
+  if (children) {
+    children.forEach((child) => {
+      if (child == null) return;
+      if (typeof child === "string" || typeof child === "number") {
+        el.appendChild(document.createTextNode(String(child)));
+      } else if (child instanceof Node) {
+        el.appendChild(child);
+      }
+    });
+  }
+  return el;
+}
 
-// four UI states: loading, error, empty, success
+let _triggerElement = null;
 
 export function showLoading(elementId) {
   const el = document.getElementById(elementId);
   if (el) {
-    el.innerHTML = `
-      <tr>
-        <td colspan="6" class="loading-cell">
-          <div class="loading-spinner"></div>
-          <p>Loading data…</p>
-        </td>
-      </tr>`;
+    el.replaceChildren(
+      createElement("tr", {}, [
+        createElement("td", { colSpan: 6, className: "loading-cell" }, [
+          createElement("div", { className: "loading-spinner" }),
+          createElement("p", {}, ["Loading data…"]),
+        ]),
+      ]),
+    );
   }
 }
 
-// showRetry is driven by the message map. only renders the retry button when true
 export function showError(elementId, { message, showRetry }, onRetry) {
   const el = document.getElementById(elementId);
   if (!el) return;
 
-  el.innerHTML = `
-    <tr>
-      <td colspan="6" class="error-cell">
-        <p class="error-message">${message}</p>
-        ${showRetry ? '<button class="retry-button">Retry</button>' : ""}
-      </td>
-    </tr>`;
+  const tdChildren = [
+    createElement("p", { className: "error-message" }, [message]),
+  ];
 
-  // only attach retry handler if showRetry is true and callback exists
-  if (showRetry && onRetry) {
-    const btn = el.querySelector(".retry-button");
-    if (btn) btn.addEventListener("click", onRetry);
+  if (showRetry) {
+    const btn = createElement("button", { className: "retry-button" }, [
+      "Retry",
+    ]);
+    if (onRetry) btn.addEventListener("click", onRetry);
+    tdChildren.push(btn);
   }
+
+  el.replaceChildren(
+    createElement("tr", {}, [
+      createElement("td", { colSpan: 6, className: "error-cell" }, tdChildren),
+    ]),
+  );
 }
 
 function showEmpty(elementId, message) {
   const el = document.getElementById(elementId);
   if (el) {
-    el.innerHTML = `
-      <tr>
-        <td colspan="6" class="empty-cell">
-          <p>${message}</p>
-        </td>
-      </tr>`;
+    el.replaceChildren(
+      createElement("tr", {}, [
+        createElement("td", { colSpan: 6, className: "empty-cell" }, [
+          createElement("p", {}, [message]),
+        ]),
+      ]),
+    );
   }
 }
-
-// standings
 
 export function renderStandings() {
   const standings = getSortedStandings();
 
-  // empty state
   if (standings.length === 0) {
     showEmpty("standings-body", "No standings data available.");
     return;
   }
 
-  // success state
-  dom.standingsBody.innerHTML = "";
-
-  standings.forEach((entry) => {
+  const rows = standings.map((entry) => {
     const team = entry.team;
     const stats = entry.all;
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>
-        <div class="team-cell">
-          <span class="rank-badge">${entry.rank}</span>
-          <img src="${team.logo}" alt="${team.name}" class="team-logo" width="24" height="24" />
-          <strong>${team.name}</strong>
-        </div>
-      </td>
-      <td>${stats.played}</td>
-      <td>${stats.win}</td>
-      <td>${stats.draw}</td>
-      <td>${stats.lose}</td>
-      <td><strong>${entry.points}</strong></td>`;
-    row.style.cursor = "pointer";
+
+    const row = createElement(
+      "tr",
+      { style: { cursor: "pointer" }, tabIndex: 0 },
+      [
+        createElement("td", {}, [
+          createElement("div", { className: "team-cell" }, [
+            createElement("span", { className: "rank-badge" }, [entry.rank]),
+            createElement("img", {
+              src: team.logo,
+              alt: team.name,
+              className: "team-logo",
+              width: 24,
+              height: 24,
+            }),
+            createElement("strong", {}, [team.name]),
+          ]),
+        ]),
+        createElement("td", {}, [stats.played]),
+        createElement("td", {}, [stats.win]),
+        createElement("td", {}, [stats.draw]),
+        createElement("td", {}, [stats.lose]),
+        createElement("td", {}, [createElement("strong", {}, [entry.points])]),
+      ],
+    );
+
     row.setAttribute("aria-label", `View ${team.name} details`);
     row.setAttribute("role", "button");
-    row.addEventListener("click", () => {
+    const openModal = () => {
       _triggerElement = row;
       openTeamModal(entry);
-    });
+    };
+    row.addEventListener("click", openModal);
     row.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        _triggerElement = row;
-        openTeamModal(entry);
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openModal();
       }
     });
-    row.tabIndex = 0;
-    dom.standingsBody.appendChild(row);
-  });
-}
 
-// stats (top scorers / assists)
+    return row;
+  });
+
+  dom.standingsBody.replaceChildren(...rows);
+}
 
 export function renderStats() {
   const currentStatType = getStatType();
-  const source = getTopStatPlayers(); // selector — derived data
+  const source = getTopStatPlayers();
 
   dom.statsTitle.textContent =
     currentStatType === "goals" ? "Top Scorers" : "Top Assist Leaders";
   dom.statColumn.textContent =
     currentStatType === "goals" ? "Goals" : "Assists";
 
-  // empty state
   if (source.length === 0) {
     showEmpty("stats-body", "No player stats available.");
     return;
   }
 
-  // success state
-  dom.statsBody.innerHTML = "";
-
-  source.forEach((entry) => {
+  const rows = source.map((entry) => {
     const p = entry.player;
     const s = entry.statistics[0];
     const value =
       currentStatType === "goals" ? s.goals.total || 0 : s.goals.assists || 0;
     const fullName = `${p.firstname} ${p.lastname}`;
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>
-        <div class="player-cell">
-          <img src="${p.photo}" alt="${fullName}" class="player-photo" width="32" height="32" />
-          <strong>${fullName}</strong>
-        </div>
-      </td>
-      <td>
-        <div class="team-cell-sm">
-          <img src="${s.team.logo}" alt="${s.team.name}" class="team-logo-sm" width="18" height="18" />
-          ${s.team.name}
-        </div>
-      </td>
-      <td><strong>${value}</strong></td>`;
-    row.style.cursor = "pointer";
+    const row = createElement(
+      "tr",
+      { style: { cursor: "pointer" }, tabIndex: 0 },
+      [
+        createElement("td", {}, [
+          createElement("div", { className: "player-cell" }, [
+            createElement("img", {
+              src: p.photo,
+              alt: fullName,
+              className: "player-photo",
+              width: 32,
+              height: 32,
+            }),
+            createElement("strong", {}, [fullName]),
+          ]),
+        ]),
+        createElement("td", {}, [
+          createElement("div", { className: "team-cell-sm" }, [
+            createElement("img", {
+              src: s.team.logo,
+              alt: s.team.name,
+              className: "team-logo-sm",
+              width: 18,
+              height: 18,
+            }),
+            " ",
+            s.team.name,
+          ]),
+        ]),
+        createElement("td", {}, [createElement("strong", {}, [value])]),
+      ],
+    );
+
     row.setAttribute("aria-label", `View ${fullName} stats`);
     row.setAttribute("role", "button");
+
     const openPlayer = () => {
       _triggerElement = row;
       const allPlayers = getAllPlayers();
@@ -178,16 +227,20 @@ export function renderStats() {
       };
       openPlayerView(playerObj, null);
     };
+
     row.addEventListener("click", openPlayer);
     row.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") openPlayer();
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openPlayer();
+      }
     });
-    row.tabIndex = 0;
-    dom.statsBody.appendChild(row);
-  });
-}
 
-// search
+    return row;
+  });
+
+  dom.statsBody.replaceChildren(...rows);
+}
 
 export function handleSearch(event) {
   event.preventDefault();
@@ -225,36 +278,70 @@ export function clearSearchResults() {
   });
 }
 
-// team modal
-
 async function openTeamModal(entry) {
   setCurrentTeamEntry(entry);
   const team = entry.team;
   const stats = entry.all;
 
-  dom.modalTitle.innerHTML = `
-    <img src="${team.logo}" alt="${team.name}" class="modal-team-logo" width="36" height="36" />
-    ${team.name}`;
+  dom.modalTitle.replaceChildren(
+    createElement("img", {
+      src: team.logo,
+      alt: team.name,
+      className: "modal-team-logo",
+      width: 36,
+      height: 36,
+    }),
+    " ",
+    team.name,
+  );
 
   dom.modalBackBtn.hidden = true;
 
-  dom.modalContent.innerHTML = `
-    <div class="team-stats-grid">
-      <div class="stat-box"><span class="stat-number">${entry.rank}</span><span class="stat-desc">Position</span></div>
-      <div class="stat-box"><span class="stat-number">${entry.points}</span><span class="stat-desc">Points</span></div>
-      <div class="stat-box"><span class="stat-number">${entry.goalsDiff}</span><span class="stat-desc">Goal Diff</span></div>
-      <div class="stat-box"><span class="stat-number">${stats.goals.for}</span><span class="stat-desc">Goals For</span></div>
-      <div class="stat-box"><span class="stat-number">${stats.goals.against}</span><span class="stat-desc">Goals Agst</span></div>
-    </div>
-    <p><strong>Record:</strong> ${stats.win}W – ${stats.draw}D – ${stats.lose}L</p>
-    <p><strong>Form:</strong> <span class="form-display">${renderForm(entry.form)}</span></p>
-    ${entry.description ? `<p><strong>Status:</strong> ${entry.description}</p>` : ""}
-    <hr class="section-divider" />
-    <h3>Squad</h3>
-    <div id="squad-container" class="squad-loading">
-      <div class="loading-spinner"></div>
-      <p>Loading squad…</p>
-    </div>`;
+  const contentChildren = [
+    createElement("div", { className: "team-stats-grid" }, [
+      statBox(entry.rank, "Position"),
+      statBox(entry.points, "Points"),
+      statBox(entry.goalsDiff, "Goal Diff"),
+      statBox(stats.goals.for, "Goals For"),
+      statBox(stats.goals.against, "Goals Agst"),
+    ]),
+    createElement("p", {}, [
+      createElement("strong", {}, ["Record: "]),
+      `${stats.win}W – ${stats.draw}D – ${stats.lose}L`,
+    ]),
+    createElement("p", {}, [
+      createElement("strong", {}, ["Form: "]),
+      createElement(
+        "span",
+        { className: "form-display" },
+        renderForm(entry.form),
+      ),
+    ]),
+  ];
+
+  if (entry.description) {
+    contentChildren.push(
+      createElement("p", {}, [
+        createElement("strong", {}, ["Status: "]),
+        entry.description,
+      ]),
+    );
+  }
+
+  contentChildren.push(
+    createElement("hr", { className: "section-divider" }),
+    createElement("h3", {}, ["Squad"]),
+    createElement(
+      "div",
+      { id: "squad-container", className: "squad-loading" },
+      [
+        createElement("div", { className: "loading-spinner" }),
+        createElement("p", {}, ["Loading squad…"]),
+      ],
+    ),
+  );
+
+  dom.modalContent.replaceChildren(...contentChildren);
 
   dom.modal.removeAttribute("hidden");
   dom.closeModalBtn.focus();
@@ -270,69 +357,95 @@ async function openTeamModal(entry) {
     const { message, showRetry } = classifyError(err);
     const container = document.getElementById("squad-container");
     container.className = "";
-    container.innerHTML = `<p class="error-message">${message}</p>`;
+
+    const errChildren = [
+      createElement("p", { className: "error-message" }, [message]),
+    ];
     if (showRetry) {
-      const btn = document.createElement("button");
-      btn.className = "retry-button";
-      btn.textContent = "Retry";
+      const btn = createElement("button", { className: "retry-button" }, [
+        "Retry",
+      ]);
       btn.addEventListener("click", () => openTeamModal(entry));
-      container.appendChild(btn);
+      errChildren.push(btn);
     }
+
+    container.replaceChildren(...errChildren);
   }
 }
 
 function renderSquad(players, teamEntry) {
   const container = document.getElementById("squad-container");
 
-  // empty state
   if (!players.length) {
     container.className = "";
-    container.innerHTML = '<p class="no-data">No squad data available.</p>';
+    container.replaceChildren(
+      createElement("p", { className: "no-data" }, [
+        "No squad data available.",
+      ]),
+    );
     return;
   }
 
-  // success state. use selector for grouped/sorted data
   const groups = getSquadByPosition(teamEntry.team.id);
   if (!groups) return;
 
-  let html = "";
+  const children = [];
   for (const [position, list] of Object.entries(groups)) {
     if (!list.length) continue;
-    html += `<div class="position-group"><h4>${position}s</h4><div class="players-grid">`;
-    list.forEach((p) => {
+
+    const playersGrid = list.map((p) => {
       const badge =
         p.appearances > 0
-          ? `<span class="app-badge">${p.appearances} app</span>`
-          : `<span class="app-badge dim">0 app</span>`;
-      html += `
-        <div class="player-card" data-player-id="${p.id}" tabindex="0">
-          <img src="${p.photo}" alt="${p.name}" class="card-player-photo" width="48" height="48" />
-          <div class="card-info">
-            <span class="card-name">${p.name}</span>
-            ${badge}
-          </div>
-        </div>`;
+          ? createElement("span", { className: "app-badge" }, [
+              `${p.appearances} app`,
+            ])
+          : createElement("span", { className: "app-badge dim" }, ["0 app"]);
+
+      const card = createElement(
+        "div",
+        { className: "player-card", tabIndex: 0, dataset: { playerId: p.id } },
+        [
+          createElement("img", {
+            src: p.photo,
+            alt: p.name,
+            className: "card-player-photo",
+            width: 48,
+            height: 48,
+          }),
+          createElement("div", { className: "card-info" }, [
+            createElement("span", { className: "card-name" }, [p.name]),
+            badge,
+          ]),
+        ],
+      );
+
+      const handler = () => {
+        const player = players.find((pl) => pl.id === p.id);
+        if (player) openPlayerView(player, teamEntry);
+      };
+
+      card.addEventListener("click", handler);
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handler();
+        }
+      });
+
+      return card;
     });
-    html += "</div></div>";
+
+    children.push(
+      createElement("div", { className: "position-group" }, [
+        createElement("h4", {}, [`${position}s`]),
+        createElement("div", { className: "players-grid" }, playersGrid),
+      ]),
+    );
   }
 
   container.className = "";
-  container.innerHTML = html;
-
-  container.querySelectorAll(".player-card").forEach((card) => {
-    const handler = () => {
-      const pid = parseInt(card.dataset.playerId);
-      const player = players.find((pl) => pl.id === pid);
-      if (player) openPlayerView(player, teamEntry);
-    };
-    card.addEventListener("click", handler);
-    card.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") handler();
-    });
-  });
+  container.replaceChildren(...children);
 }
-
-// player view
 
 function openPlayerView(player, fromTeamEntry) {
   dom.modalTitle.textContent = "Player Details";
@@ -345,30 +458,70 @@ function openPlayerView(player, fromTeamEntry) {
     dom.modalBackBtn.hidden = true;
   }
 
-  const statsHTML = buildPositionStats(player);
+  const metaText = [
+    player.position || "",
+    player.age ? " · Age " + player.age : "",
+    player.nationality ? " · " + player.nationality : "",
+  ].join("");
 
-  dom.modalContent.innerHTML = `
-    <div class="player-detail-header">
-      <img src="${player.photo}" alt="${player.name}" class="detail-player-photo" width="80" height="80" />
-      <div>
-        <h3>${player.name}${player.captain ? ' <span class="captain-badge">C</span>' : ""}</h3>
-        <p class="player-meta">
-          ${player.position || ""}${player.age ? " · Age " + player.age : ""}${player.nationality ? " · " + player.nationality : ""}
-        </p>
-        ${player.height || player.weight ? `<p class="player-meta">${player.height ? player.height + " cm" : ""}${player.height && player.weight ? " · " : ""}${player.weight ? player.weight + " kg" : ""}</p>` : ""}
-      </div>
-    </div>
-    <div class="player-detail-team">
-      ${player.teamLogo ? `<img src="${player.teamLogo}" alt="${player.teamName}" width="20" height="20" />` : ""}
-      <span>${player.teamName}</span>
-    </div>
-    ${statsHTML}`;
+  const physText = [
+    player.height ? player.height + " cm" : "",
+    player.height && player.weight ? " · " : "",
+    player.weight ? player.weight + " kg" : "",
+  ].join("");
+
+  const headerNameChildren = [player.name];
+  if (player.captain) {
+    headerNameChildren.push(
+      " ",
+      createElement("span", { className: "captain-badge" }, ["C"]),
+    );
+  }
+
+  const headerDivChildren = [
+    createElement("h3", {}, headerNameChildren),
+    createElement("p", { className: "player-meta" }, [metaText]),
+  ];
+  if (physText.trim()) {
+    headerDivChildren.push(
+      createElement("p", { className: "player-meta" }, [physText]),
+    );
+  }
+
+  const teamDivChildren = [];
+  if (player.teamLogo) {
+    teamDivChildren.push(
+      createElement("img", {
+        src: player.teamLogo,
+        alt: player.teamName,
+        width: 20,
+        height: 20,
+      }),
+      " ",
+    );
+  }
+  teamDivChildren.push(createElement("span", {}, [player.teamName]));
+
+  const contentChildren = [
+    createElement("div", { className: "player-detail-header" }, [
+      createElement("img", {
+        src: player.photo,
+        alt: player.name,
+        className: "detail-player-photo",
+        width: 80,
+        height: 80,
+      }),
+      createElement("div", {}, headerDivChildren),
+    ]),
+    createElement("div", { className: "player-detail-team" }, teamDivChildren),
+    ...buildPositionStats(player),
+  ];
+
+  dom.modalContent.replaceChildren(...contentChildren);
 
   dom.modal.removeAttribute("hidden");
   dom.closeModalBtn.focus();
 }
-
-// position-specific stats
 
 function buildPositionStats(player) {
   const pos = player.position;
@@ -380,112 +533,133 @@ function buildPositionStats(player) {
     if (player.goals != null) rows.push(statBox(player.goals, "Goals"));
     if (player.assists != null) rows.push(statBox(player.assists, "Assists"));
     if (player.rating != null) rows.push(statBox(player.rating, "Rating"));
-    if (rows.length === 0)
-      return '<p class="no-data">No detailed stats available.</p>';
-    return `<div class="player-stats-grid">${rows.join("")}</div>`;
+
+    if (rows.length === 0) {
+      return [
+        createElement("p", { className: "no-data" }, [
+          "No detailed stats available.",
+        ]),
+      ];
+    }
+    return [createElement("div", { className: "player-stats-grid" }, rows)];
   }
 
-  let html = "";
-
-  html += `<h4 class="stats-section-title">Overview</h4>`;
-  html += '<div class="player-stats-grid">';
-  html += statBox(player.appearances, "Apps");
-  html += statBox(player.lineups, "Starts");
-  html += statBox(formatMinutes(player.minutes), "Minutes");
-  html += statBox(player.rating || "–", "Rating");
-  html += "</div>";
+  const elements = [
+    createElement("h4", { className: "stats-section-title" }, ["Overview"]),
+    createElement("div", { className: "player-stats-grid" }, [
+      statBox(player.appearances, "Apps"),
+      statBox(player.lineups, "Starts"),
+      statBox(formatMinutes(player.minutes), "Minutes"),
+      statBox(player.rating || "–", "Rating"),
+    ]),
+  ];
 
   if (pos === "Goalkeeper") {
-    html += `<h4 class="stats-section-title">Goalkeeping</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.conceded, "Conceded");
-    html += statBox(player.saves, "Saves");
-    html += statBox(player.penSaved, "Pen Saved");
-    html += statBox(player.goals, "Goals");
-    html += "</div>";
+    elements.push(
+      createElement("h4", { className: "stats-section-title" }, [
+        "Goalkeeping",
+      ]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.conceded, "Conceded"),
+        statBox(player.saves, "Saves"),
+        statBox(player.penSaved, "Pen Saved"),
+        statBox(player.goals, "Goals"),
+      ]),
+    );
   } else if (pos === "Defender") {
-    html += `<h4 class="stats-section-title">Defending</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.tackles, "Tackles");
-    html += statBox(player.interceptions, "Intercept.");
-    html += statBox(player.blocks, "Blocks");
-    html += statBox(duelsPercent(player), "Duels Won");
-    html += "</div>";
-    html += `<h4 class="stats-section-title">Attack</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.goals, "Goals");
-    html += statBox(player.assists, "Assists");
-    html += statBox(player.keyPasses, "Key Passes");
-    html += statBox(
-      player.passAccuracy ? player.passAccuracy + "%" : "–",
-      "Pass Acc.",
+    elements.push(
+      createElement("h4", { className: "stats-section-title" }, ["Defending"]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.tackles, "Tackles"),
+        statBox(player.interceptions, "Intercept."),
+        statBox(player.blocks, "Blocks"),
+        statBox(duelsPercent(player), "Duels Won"),
+      ]),
+      createElement("h4", { className: "stats-section-title" }, ["Attack"]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.goals, "Goals"),
+        statBox(player.assists, "Assists"),
+        statBox(player.keyPasses, "Key Passes"),
+        statBox(
+          player.passAccuracy ? player.passAccuracy + "%" : "–",
+          "Pass Acc.",
+        ),
+      ]),
     );
-    html += "</div>";
   } else if (pos === "Midfielder") {
-    html += `<h4 class="stats-section-title">Attack</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.goals, "Goals");
-    html += statBox(player.assists, "Assists");
-    html += statBox(player.keyPasses, "Key Passes");
-    html += statBox(player.shotsOn + "/" + player.shotsTotal, "Shots (on)");
-    html += "</div>";
-    html += `<h4 class="stats-section-title">Passing & Dribbling</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.passesTotal, "Passes");
-    html += statBox(
-      player.passAccuracy ? player.passAccuracy + "%" : "–",
-      "Pass Acc.",
+    elements.push(
+      createElement("h4", { className: "stats-section-title" }, ["Attack"]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.goals, "Goals"),
+        statBox(player.assists, "Assists"),
+        statBox(player.keyPasses, "Key Passes"),
+        statBox(player.shotsOn + "/" + player.shotsTotal, "Shots (on)"),
+      ]),
+      createElement("h4", { className: "stats-section-title" }, [
+        "Passing & Dribbling",
+      ]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.passesTotal, "Passes"),
+        statBox(
+          player.passAccuracy ? player.passAccuracy + "%" : "–",
+          "Pass Acc.",
+        ),
+        statBox(
+          player.dribblesSuccess + "/" + player.dribblesAttempted,
+          "Dribbles",
+        ),
+        statBox(duelsPercent(player), "Duels Won"),
+      ]),
+      createElement("h4", { className: "stats-section-title" }, ["Defending"]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.tackles, "Tackles"),
+        statBox(player.interceptions, "Intercept."),
+        statBox(player.foulsCommitted, "Fouls"),
+      ]),
     );
-    html += statBox(
-      player.dribblesSuccess + "/" + player.dribblesAttempted,
-      "Dribbles",
-    );
-    html += statBox(duelsPercent(player), "Duels Won");
-    html += "</div>";
-    html += `<h4 class="stats-section-title">Defending</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.tackles, "Tackles");
-    html += statBox(player.interceptions, "Intercept.");
-    html += statBox(player.foulsCommitted, "Fouls");
-    html += "</div>";
   } else {
-    html += `<h4 class="stats-section-title">Attack</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.goals, "Goals");
-    html += statBox(player.assists, "Assists");
-    html += statBox(player.shotsOn + "/" + player.shotsTotal, "Shots (on)");
-    html += statBox(
-      player.penScored + "/" + (player.penScored + player.penMissed),
-      "Penalties",
+    elements.push(
+      createElement("h4", { className: "stats-section-title" }, ["Attack"]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.goals, "Goals"),
+        statBox(player.assists, "Assists"),
+        statBox(player.shotsOn + "/" + player.shotsTotal, "Shots (on)"),
+        statBox(
+          player.penScored + "/" + (player.penScored + player.penMissed),
+          "Penalties",
+        ),
+      ]),
+      createElement("h4", { className: "stats-section-title" }, ["Creativity"]),
+      createElement("div", { className: "player-stats-grid" }, [
+        statBox(player.keyPasses, "Key Passes"),
+        statBox(
+          player.dribblesSuccess + "/" + player.dribblesAttempted,
+          "Dribbles",
+        ),
+        statBox(player.passesTotal, "Passes"),
+        statBox(player.foulsDrawn, "Fouls Won"),
+      ]),
     );
-    html += "</div>";
-    html += `<h4 class="stats-section-title">Creativity</h4>`;
-    html += '<div class="player-stats-grid">';
-    html += statBox(player.keyPasses, "Key Passes");
-    html += statBox(
-      player.dribblesSuccess + "/" + player.dribblesAttempted,
-      "Dribbles",
-    );
-    html += statBox(player.passesTotal, "Passes");
-    html += statBox(player.foulsDrawn, "Fouls Won");
-    html += "</div>";
   }
 
-  html += `<h4 class="stats-section-title">Discipline</h4>`;
-  html += '<div class="player-stats-grid">';
-  html += statBox(player.yellowCards, "Yellows");
-  html += statBox(player.redCards, "Reds");
-  html += statBox(player.foulsCommitted, "Fouls");
-  html += statBox(player.foulsDrawn, "Fouls Won");
-  html += "</div>";
+  elements.push(
+    createElement("h4", { className: "stats-section-title" }, ["Discipline"]),
+    createElement("div", { className: "player-stats-grid" }, [
+      statBox(player.yellowCards, "Yellows"),
+      statBox(player.redCards, "Reds"),
+      statBox(player.foulsCommitted, "Fouls"),
+      statBox(player.foulsDrawn, "Fouls Won"),
+    ]),
+  );
 
-  return html;
+  return elements;
 }
 
-// helpers
-
 function statBox(value, label) {
-  return `<div class="stat-box"><span class="stat-number">${value}</span><span class="stat-desc">${label}</span></div>`;
+  return createElement("div", { className: "stat-box" }, [
+    createElement("span", { className: "stat-number" }, [value]),
+    createElement("span", { className: "stat-desc" }, [label]),
+  ]);
 }
 
 function formatMinutes(mins) {
@@ -500,23 +674,17 @@ function duelsPercent(player) {
 }
 
 function renderForm(form) {
-  if (!form) return "";
-  return form
-    .split("")
-    .map((ch) => {
-      const cls = ch === "W" ? "form-w" : ch === "D" ? "form-d" : "form-l";
-      return `<span class="form-badge ${cls}">${ch}</span>`;
-    })
-    .join("");
+  if (!form) return [];
+  return form.split("").map((ch) => {
+    const cls = ch === "W" ? "form-w" : ch === "D" ? "form-d" : "form-l";
+    return createElement("span", { className: `form-badge ${cls}` }, [ch]);
+  });
 }
-
-// modal close
 
 export function closeModal() {
   dom.modal.setAttribute("hidden", "");
   setCurrentTeamEntry(null);
 
-  // return focus to the element that opened the modal
   if (_triggerElement) {
     _triggerElement.focus();
     _triggerElement = null;
@@ -529,7 +697,6 @@ export function handleOutsideClick(event) {
   }
 }
 
-// focus trap: keep Tab cycling within the open modal
 export function handleFocusTrap(event) {
   if (event.key !== "Tab") return;
   if (dom.modal.hasAttribute("hidden")) return;

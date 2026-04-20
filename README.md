@@ -14,6 +14,8 @@ A simple, clean web application for tracking English Premier League statistics, 
    4. Click on teams or players to see detailed information in modals
    5. Use keyboard navigation (Tab) and Escape key to navigate modals
 
+Alternatively, the user can install Live Server extension on VsCode and run the application using that.
+
 ## Modular Map
 
 Refactored Structure:
@@ -88,14 +90,35 @@ Refactored Structure:
 
 ## Resilence Patterns
 
-    Timeout — AbortController with a reasonable timeout. Lives in api.js
+**Timeout**: `AbortController` handles network delays with an 8-second timeout, preventing stale requests from hanging the application. (Implemented in `src/api.js` inside the `apiFetch` wrapper).
 
-    Structured error messages — different messages for network, timeout, HTTP, and parse errors. Lives in api.js
+**Structured Error Messages**: Comprehensive `MESSAGE_MAP` handles network, timeout, HTTP, and parse errors, ensuring end-users see clean UI feedback rather than generic console dumps. (Implemented in `src/api.js` via `classifyError`).
 
-## Features
+**Retry Button Mechanism**: Conditional rendering of a retry button depending on the error classification. Allows users to easily re-fetch data if a network request fails gracefully without needing to refresh the page. (Implemented in `src/render.js` within `showError` and `openTeamModal`).
+
+## Current Feature Status
+
+**Completed Features & Stable Status:**
 
 - **League Standings**: View teams ranked by points with detailed statistics
 - **Player Statistics**: Toggle between top scorers and top assist leaders
 - **Player Search**: Search for specific players with instant dropdown results
 - **Team Details**: Click any team to see team information and scrollable player roster
 - **Player Profiles**: Click any player to view detailed statistics including total contributions
+- **Accessibility**: Full keyboard navigation (Tab/Enter/Escape), focus traps, ARIA tagging, and outline visibility.
+- **Security**: Complete DOM node creation applied throughout component rendering to prevent XSS.
+
+## Contributions
+
+- **Khumoyun**:
+  - Requirement 1 (Modular project structure & Module map)
+  - Requirement 3 (State model + selectors)
+  - Requirement 4 (Component extraction & Component contracts)
+  - Front-end structural design, CSS architecture, and HTML markup.
+- **Devon**:
+  - Requirement 2 (Data-driven logic & four UI states)
+  - Requirement 5 (Resilience patterns & Error Mapping architecture)
+  - Managed UI Event listeners and DOM abstractions.
+- **Collaborative**:
+  - Requirement 0 (Project group setup & codebase initialization)
+  - Requirement 7 (Updated README & Documentation write-up)

@@ -1,3 +1,5 @@
+import { CONFIG } from "../config.js";
+
 const API_HOST = "https://v3.football.api-sports.io";
 const LEAGUE_ID = 39;
 const SEASON = 2024;
