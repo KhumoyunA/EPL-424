@@ -1,5 +1,5 @@
 export const CONFIG = {
-  API_KEY: "d4e4c639ddf3a4e5130b9b43011af22e",
+  API_KEY: "3f50cb604f8294139c2f48de16585e98",
 };
 
-// 69e03fede5597ba70eb8903f5f1fe300
+// d4e4c639ddf3a4e5130b9b43011af22e
