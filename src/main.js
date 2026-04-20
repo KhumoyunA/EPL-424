@@ -43,7 +43,6 @@ async function loadAllData() {
     renderStats();
     dom.toggleBtn.disabled = false;
   } catch (err) {
-    console.error("Failed to load player stats:", err);
     const classified = classifyError(err);
     dom.toggleBtn.disabled = true;
     showError(

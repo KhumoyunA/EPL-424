@@ -28,6 +28,17 @@ function createElement(tag, props = {}, children = []) {
       el[key] = props[key];
     }
   });
+
+  // global missing image fallback (bug 5 fix)
+  if (tag === "img" && !props.onerror) {
+    el.onerror = function (e) {
+      if (!e.target.src.includes("data:image")) {
+        e.target.src =
+          "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2248%22%20height%3D%2248%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2220%22%20fill%3D%22%23dddddd%22%2F%3E%3C%2Fsvg%3E";
+      }
+    };
+  }
+
   if (children) {
     children.forEach((child) => {
       if (child == null) return;
@@ -352,6 +363,13 @@ async function openTeamModal(entry) {
       const raw = await fetchTeamPlayers(team.id);
       cached = normalizeAndCacheTeamPlayers(team.id, raw);
     }
+
+    // bug 2 fix: prevent stale data race-condition if user rapidly clicked another team
+    const currentEntry = getCurrentTeamEntry();
+    if (!currentEntry || currentEntry.team.id !== team.id) {
+      return;
+    }
+
     renderSquad(cached, entry);
   } catch (err) {
     const { message, showRetry } = classifyError(err);

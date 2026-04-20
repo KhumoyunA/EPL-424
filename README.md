@@ -108,17 +108,34 @@ Refactored Structure:
 - **Accessibility**: Full keyboard navigation (Tab/Enter/Escape), focus traps, ARIA tagging, and outline visibility.
 - **Security**: Complete DOM node creation applied throughout component rendering to prevent XSS.
 
+## Deployment URL
+
+**Live Project Site:** https://khumoyuna.github.io/EPL-424/
+
+## Testing Summary
+
+**Total Tests Conducted:** 16
+
+**Test Pass Rate:** 100% (after patches mapping)
+
+**Documented Bugs Resolved:** 5 critical logic/rendering errors resolved (including UI races, missing image pipelines, null fetch bounds, and cross-site scripting gaps).
+
+## Known Limitations
+
+As the application queries a public API via a free license wrapper natively, excessive rapid toggles might prompt HTTP 429 warnings contextually.
+
 ## Contributions
 
-- **Khumoyun**:
-  - Requirement 1 (Modular project structure & Module map)
-  - Requirement 3 (State model + selectors)
-  - Requirement 4 (Component extraction & Component contracts)
-  - Front-end structural design, CSS architecture, and HTML markup.
-- **Devon**:
-  - Requirement 2 (Data-driven logic & four UI states)
-  - Requirement 5 (Resilience patterns & Error Mapping architecture)
-  - Managed UI Event listeners and DOM abstractions.
-- **Collaborative**:
-  - Requirement 0 (Project group setup & codebase initialization)
-  - Requirement 7 (Updated README & Documentation write-up)
+**Khumoyun**:
+
+- Requirement 1 (Modular project structure & Module map)
+- Requirement 3 (State model + selectors)
+- Requirement 4 (Component extraction & Component contracts)
+- Front-end structural design, CSS architecture, and HTML markup.
+  **Devon**:
+- Requirement 2 (Data-driven logic & four UI states)
+- Requirement 5 (Resilience patterns & Error Mapping architecture)
+- Managed UI Event listeners and DOM abstractions.
+  **Shared**:
+- Requirement 0 (Project group setup & codebase initialization)
+- Requirement 7 (Updated README & Documentation write-up)

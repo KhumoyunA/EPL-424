@@ -36,6 +36,16 @@ export function attachEventListeners() {
     }
   });
 
+  // bug 3 fix: dismiss search dropdown on outside click
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".search-wrapper")) {
+      if (dom.siteSearch.value !== "") {
+        dom.siteSearch.value = "";
+        clearSearchResults();
+      }
+    }
+  });
+
   // modal close + focus trap
   dom.closeModalBtn.addEventListener("click", closeModal);
   dom.modal.addEventListener("click", handleOutsideClick);
