@@ -41,4 +41,13 @@ export const dom = {
   get closeModalBtn() {
     return document.getElementById("close-modal");
   },
+  get dataStatusBar() {
+    return document.getElementById("data-status-bar");
+  },
+  get lastUpdated() {
+    return document.getElementById("last-updated");
+  },
+  get staleWarning() {
+    return document.getElementById("stale-warning");
+  },
 };

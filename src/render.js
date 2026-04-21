@@ -1,5 +1,5 @@
 import { dom } from "./dom.js";
-import { fetchTeamPlayers, classifyError } from "./api.js";
+import { fetchTeamPlayers, classifyError, loadFromStorage } from "./api.js";
 import {
   getStatType,
   getTopStatPlayers,
@@ -8,11 +8,56 @@ import {
   getSquadByPosition,
   getAllPlayers,
   setCurrentTeamEntry,
+  getCurrentTeamEntry,
   setSearchQuery,
   getCachedTeamPlayers,
   normalizeAndCacheTeamPlayers,
+  markTeamStale,
+  getTeamStaleMessage,
 } from "./state.js";
 import { SearchResults } from "./components/SearchResults.js";
+
+// format a timestamp into a readable string
+function formatTimestamp(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// show the "Last updated" bar with the given timestamp
+export function updateStatusBar(timestamp) {
+  dom.dataStatusBar.removeAttribute("hidden");
+  dom.lastUpdated.textContent = "Last updated: " + formatTimestamp(timestamp);
+  dom.staleWarning.setAttribute("hidden", "");
+  dom.staleWarning.textContent = "";
+}
+
+// insert a stale-data notice at the top of a given section
+export function renderStaleNotice(sectionSelector, message) {
+  const section = document.querySelector(sectionSelector);
+  if (!section) return;
+
+  // remove any existing notice in this section
+  const existing = section.querySelector(".stale-notice");
+  if (existing) existing.remove();
+
+  const notice = document.createElement("div");
+  notice.className = "stale-notice stale-warning";
+  notice.textContent = message + " Showing cached data.";
+
+  // insert after the h2 heading, or at the top
+  const h2 = section.querySelector("h2");
+  if (h2 && h2.nextSibling) {
+    section.insertBefore(notice, h2.nextSibling);
+  } else {
+    section.prepend(notice);
+  }
+}
 
 // helper to safely create DOM elements and mitigate XSS
 function createElement(tag, props = {}, children = []) {
@@ -167,8 +212,8 @@ export function renderStats() {
 
   dom.statsTitle.textContent =
     currentStatType === "goals" ? "Top Scorers" : "Top Assist Leaders";
-  dom.statColumn.textContent =
-    currentStatType === "goals" ? "Goals" : "Assists";
+  dom.statColumn.textContent = currentStatType === "goals" ? "G" : "A";
+  dom.statColumn.title = currentStatType === "goals" ? "Goals" : "Assists";
 
   if (source.length === 0) {
     showEmpty("stats-body", "No player stats available.");
@@ -355,6 +400,7 @@ async function openTeamModal(entry) {
   dom.modalContent.replaceChildren(...contentChildren);
 
   dom.modal.removeAttribute("hidden");
+  document.body.classList.add("modal-open");
   dom.closeModalBtn.focus();
 
   try {
@@ -374,20 +420,29 @@ async function openTeamModal(entry) {
   } catch (err) {
     const { message, showRetry } = classifyError(err);
     const container = document.getElementById("squad-container");
-    container.className = "";
 
-    const errChildren = [
-      createElement("p", { className: "error-message" }, [message]),
-    ];
-    if (showRetry) {
-      const btn = createElement("button", { className: "retry-button" }, [
-        "Retry",
-      ]);
-      btn.addEventListener("click", () => openTeamModal(entry));
-      errChildren.push(btn);
+    // attempt localStorage fallback for squad
+    const storedSquad = loadFromStorage("team_players_" + team.id);
+    if (storedSquad && storedSquad.data && storedSquad.data.length > 0) {
+      const cached = normalizeAndCacheTeamPlayers(team.id, storedSquad.data);
+      markTeamStale(team.id, message);
+      renderSquad(cached, entry);
+    } else {
+      container.className = "";
+
+      const errChildren = [
+        createElement("p", { className: "error-message" }, [message]),
+      ];
+      if (showRetry) {
+        const btn = createElement("button", { className: "retry-button" }, [
+          "Retry",
+        ]);
+        btn.addEventListener("click", () => openTeamModal(entry));
+        errChildren.push(btn);
+      }
+
+      container.replaceChildren(...errChildren);
     }
-
-    container.replaceChildren(...errChildren);
   }
 }
 
@@ -463,6 +518,20 @@ function renderSquad(players, teamEntry) {
 
   container.className = "";
   container.replaceChildren(...children);
+
+  // automatically prepend stale data notice if team is marked stale
+  const staleMsg = getTeamStaleMessage(teamEntry.team.id);
+  if (staleMsg) {
+    const notice = createElement(
+      "p",
+      {
+        className: "stale-notice stale-warning",
+        style: { fontSize: "0.8rem", marginBottom: "0.5rem" },
+      },
+      [staleMsg + " Showing cached squad."],
+    );
+    container.prepend(notice);
+  }
 }
 
 function openPlayerView(player, fromTeamEntry) {
@@ -512,13 +581,15 @@ function openPlayerView(player, fromTeamEntry) {
       createElement("img", {
         src: player.teamLogo,
         alt: player.teamName,
-        width: 20,
-        height: 20,
+        className: "detail-team-logo",
+        width: 72,
+        height: 72,
       }),
-      " ",
     );
   }
-  teamDivChildren.push(createElement("span", {}, [player.teamName]));
+  teamDivChildren.push(
+    createElement("span", { className: "detail-team-name" }, [player.teamName]),
+  );
 
   const contentChildren = [
     createElement("div", { className: "player-detail-header" }, [
@@ -530,14 +601,19 @@ function openPlayerView(player, fromTeamEntry) {
         height: 80,
       }),
       createElement("div", {}, headerDivChildren),
+      createElement(
+        "div",
+        { className: "player-detail-team" },
+        teamDivChildren,
+      ),
     ]),
-    createElement("div", { className: "player-detail-team" }, teamDivChildren),
     ...buildPositionStats(player),
   ];
 
   dom.modalContent.replaceChildren(...contentChildren);
 
   dom.modal.removeAttribute("hidden");
+  document.body.classList.add("modal-open");
   dom.closeModalBtn.focus();
 }
 
@@ -701,6 +777,7 @@ function renderForm(form) {
 
 export function closeModal() {
   dom.modal.setAttribute("hidden", "");
+  document.body.classList.remove("modal-open");
   setCurrentTeamEntry(null);
 
   if (_triggerElement) {

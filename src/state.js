@@ -10,7 +10,16 @@ const state = {
   allPlayers: [],
   currentTeamEntry: null,
   teamPlayersCache: {},
+  staleTeamPlayers: {},
 };
+
+export function markTeamStale(teamId, message) {
+  state.staleTeamPlayers[teamId] = message;
+}
+
+export function getTeamStaleMessage(teamId) {
+  return state.staleTeamPlayers[teamId];
+}
 
 // setters
 
